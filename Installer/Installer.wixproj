@@ -1,0 +1,49 @@
+<Project ToolsVersion="4.0"
+         DefaultTargets="Build"
+         xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProductVersion>3.10</ProductVersion>
+    <ProjectGuid>{F5B6C7D8-E9F0-1234-5678-901234567890}</ProjectGuid>
+    <SchemaVersion>2.0</SchemaVersion>
+    <OutputName>VectraConnect_Setup</OutputName>
+    <OutputType>Bundle</OutputType>   <!-- produces .exe bootstrapper -->
+    <WixTargetsPath Condition=" '$(WixTargetsPath)' == '' ">
+      $(MSBuildExtensionsPath32)\Microsoft\WiX\v3.x\Wix.targets
+    </WixTargetsPath>
+
+    <!-- Path to the built MSI — set by build script, or hardcode for manual builds -->
+    <VectraConnectMsiPath Condition=" '$(VectraConnectMsiPath)' == '' ">
+      $(MSBuildThisFileDirectory)..\bin\$(Configuration)\VectraConnect.msi
+    </VectraConnectMsiPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <OutputPath>..\..\bin\Debug\</OutputPath>
+    <IntermediateOutputPath>obj\Debug\</IntermediateOutputPath>
+    <DefineConstants>Debug</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <OutputPath>..\..\bin\Release\</OutputPath>
+    <IntermediateOutputPath>obj\Release\</IntermediateOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Product.wxs" />
+    <Compile Include="Bundle.wxs" />
+  </ItemGroup>
+
+  <!-- WiX extensions -->
+  <ItemGroup>
+    <WixExtension Include="WixNetFxExtension" />
+    <WixExtension Include="WixUtilExtension" />
+    <WixExtension Include="WixUIExtension" />
+    <WixExtension Include="WixBalExtension" />
+  </ItemGroup>
+
+  <Import Project="$(WixTargetsPath)" />
+
+</Project>

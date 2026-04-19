@@ -1,0 +1,174 @@
+name: Build VectraConnect Installer
+
+on:
+  push:
+    branches: [ main ]
+    tags:     [ 'v*.*.*' ]          # e.g. v1.0.0 triggers a GitHub Release
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:                 # allow manual "Run workflow" button in GitHub UI
+
+jobs:
+  build:
+    runs-on: windows-latest         # must be Windows for VSTO + WiX
+
+    env:
+      CONFIGURATION: Release
+      SOLUTION:      VectraConnect/VectraConnect.csproj
+      BIN_DIR:       bin\Release
+      WIX_VERSION:   "3.14.1"
+
+    steps:
+
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Setup .NET (for MSBuild / NuGet) ───────────────────────────────
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'     # used for NuGet restore tooling
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      # ── 3. Restore NuGet packages ─────────────────────────────────────────
+      - name: Restore NuGet packages
+        run: nuget restore VectraConnect/VectraConnect.csproj
+        shell: cmd
+
+      # ── 4. Build VSTO add-in (Release) ────────────────────────────────────
+      - name: Build add-in
+        run: |
+          msbuild VectraConnect/VectraConnect.csproj ^
+            /t:Rebuild ^
+            /p:Configuration=${{ env.CONFIGURATION }} ^
+            /p:Platform="Any CPU" ^
+            /p:OutputPath="${{ github.workspace }}\${{ env.BIN_DIR }}\AddIn\" ^
+            /v:minimal
+        shell: cmd
+
+      # ── 5. Install WiX Toolset ────────────────────────────────────────────
+      - name: Install WiX Toolset
+        run: |
+          $url = "https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314.exe"
+          Invoke-WebRequest $url -OutFile "$env:TEMP\wix314.exe"
+          Start-Process "$env:TEMP\wix314.exe" -ArgumentList "/quiet" -Wait
+          echo "C:\Program Files (x86)\WiX Toolset v3.14\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        shell: pwsh
+
+      # ── 6. Download VSTO Runtime redistributable ──────────────────────────
+      - name: Download VSTO Runtime
+        run: |
+          New-Item -ItemType Directory -Force -Path "Installer\Prerequisites" | Out-Null
+          $url = "https://download.microsoft.com/download/b/b/9/bb9d5c37-6f77-46ca-858d-58b82f059f2b/vstor_redist.exe"
+          Invoke-WebRequest $url -OutFile "Installer\Prerequisites\vstor_redist.exe"
+          Write-Host "VSTO runtime downloaded: $((Get-Item 'Installer\Prerequisites\vstor_redist.exe').Length) bytes"
+        shell: pwsh
+
+      # ── 7. Generate placeholder assets (banner, dialog, icon) ────────────
+      #    In production replace these with your real branded images.
+      - name: Generate installer assets
+        run: |
+          python scripts/make_assets.py
+        shell: pwsh
+
+      # ── 8. Build MSI with WiX candle + light ─────────────────────────────
+      - name: Build MSI
+        run: |
+          $addInBin = "${{ github.workspace }}\${{ env.BIN_DIR }}\AddIn"
+          $objDir   = "${{ github.workspace }}\Installer\obj\${{ env.CONFIGURATION }}"
+          $binDir   = "${{ github.workspace }}\${{ env.BIN_DIR }}"
+          New-Item -ItemType Directory -Force -Path $objDir | Out-Null
+          New-Item -ItemType Directory -Force -Path $binDir | Out-Null
+
+          # Candle — compile Product.wxs
+          candle.exe -nologo -arch x86 `
+            -ext WixNetFxExtension `
+            -ext WixUtilExtension `
+            -ext WixUIExtension `
+            "-dVectraConnect.TargetPath=$addInBin\VectraConnect.dll" `
+            "-dVectraConnect.TargetDir=$addInBin\" `
+            "-o$objDir\Product.wixobj" `
+            Installer\Product.wxs
+
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          # Light — link MSI
+          light.exe -nologo `
+            -ext WixNetFxExtension `
+            -ext WixUtilExtension `
+            -ext WixUIExtension `
+            -cultures:en-US `
+            -loc Installer\Assets\en-US.wxl `
+            "-out$binDir\VectraConnect.msi" `
+            "$objDir\Product.wixobj"
+
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Host "MSI built: $binDir\VectraConnect.msi"
+        shell: pwsh
+
+      # ── 9. Build bootstrapper EXE ─────────────────────────────────────────
+      - name: Build Setup.exe (bundle)
+        run: |
+          $msiPath = "${{ github.workspace }}\${{ env.BIN_DIR }}\VectraConnect.msi"
+          $objDir  = "${{ github.workspace }}\Installer\obj\${{ env.CONFIGURATION }}"
+          $binDir  = "${{ github.workspace }}\${{ env.BIN_DIR }}"
+
+          # Candle — compile Bundle.wxs
+          candle.exe -nologo -arch x86 `
+            -ext WixNetFxExtension `
+            -ext WixUtilExtension `
+            -ext WixBalExtension `
+            "-dVectraConnectMsiPath=$msiPath" `
+            "-o$objDir\Bundle.wixobj" `
+            Installer\Bundle.wxs
+
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          # Light — link EXE
+          light.exe -nologo `
+            -ext WixNetFxExtension `
+            -ext WixUtilExtension `
+            -ext WixBalExtension `
+            -cultures:en-US `
+            "-out$binDir\VectraConnect_Setup.exe" `
+            "$objDir\Bundle.wixobj"
+
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Host "Setup.exe built: $binDir\VectraConnect_Setup.exe"
+        shell: pwsh
+
+      # ── 10. Upload Setup.exe as workflow artifact (every build) ───────────
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VectraConnect_Setup
+          path: ${{ env.BIN_DIR }}\VectraConnect_Setup.exe
+          retention-days: 30
+
+      # ── 11. Create GitHub Release (only on version tags: v*.*.*) ──────────
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Vectra Connect ${{ github.ref_name }}"
+          body: |
+            ## Vectra Connect ${{ github.ref_name }}
+
+            ### Install instructions
+            1. Download **VectraConnect_Setup.exe** below
+            2. Double-click it — Next → Accept licence → Install → Finish
+            3. Open MS Project and look for the **Vectra Connect** group on the Task tab
+
+            > **Note:** If Windows shows a SmartScreen warning, click More info → Run anyway.
+
+            ### What's new
+            See [CHANGELOG.md](CHANGELOG.md) for details.
+          files: |
+            ${{ env.BIN_DIR }}\VectraConnect_Setup.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,32 @@
+# Build outputs
+bin/
+obj/
+out/
+*.user
+*.suo
+.vs/
+
+# WiX intermediates
+Installer/obj/
+*.wixpdb
+
+# NuGet
+packages/
+*.nupkg
+
+# VSTO publish output
+publish/
+
+# Prerequisites (download at build time, never commit)
+Installer/Prerequisites/vstor_redist.exe
+
+# Generated assets (recreated by make_assets.py)
+# Comment these out if you commit real branded images instead:
+Installer/Assets/banner.bmp
+Installer/Assets/dialog.bmp
+Installer/Assets/publisher.ico
+Installer/Assets/logo.png
+
+# OS noise
+.DS_Store
+Thumbs.db

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WixLocalization Culture="en-US" Codepage="1252"
+                 xmlns="http://schemas.microsoft.com/wix/2006/localization">
+
+  <String Id="WelcomeTitle">    Welcome to the Vectra Connect Setup</String>
+  <String Id="WelcomeText">
+    This wizard will install the Vectra Connect add-in on your computer.
+
+    The add-in adds a "Publish Schema" button to the MS Project ribbon. Click it to
+    export your project's tasks, resources, and assignments to an Excel workbook.
+
+    Click Next to continue, or Cancel to exit.
+  </String>
+
+  <String Id="LicenseHeader">  Please read the licence agreement</String>
+  <String Id="LicenseAcceptance">I &amp;accept the terms in the Licence Agreement</String>
+
+  <String Id="InstallDirHeader">   Destination Folder</String>
+  <String Id="InstallDirText">
+    The add-in will be installed to your personal AppData folder — no administrator
+    rights are required.
+  </String>
+
+  <String Id="VerifyReadyHeader">  Ready to Install</String>
+  <String Id="VerifyReadyText">
+    Click Install to begin the installation. Click Back to review or change settings.
+  </String>
+
+  <String Id="ProgressHeader">   Installing…</String>
+  <String Id="ProgressText">     Please wait while Vectra Connect is being installed.</String>
+
+  <String Id="ExitDialogHeader"> Installation Complete</String>
+  <String Id="ExitDialogText">
+    Vectra Connect has been installed successfully.
+
+    Open Microsoft Project and look for the "Vectra Connect" group on the Task tab.
+  </String>
+
+</WixLocalization>

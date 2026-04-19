@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui"
+          onLoad="Ribbon_Load">
+  <ribbon>
+    <tabs>
+      <tab idMso="TabTask">
+        <!-- Appended to the built-in Task tab -->
+        <group id="grpPublisher"
+               label="Vectra Connect"
+               insertAfterMso="GroupTaskScheduling">
+
+          <button id="btnPublish"
+                  label="Publish Schema"
+                  screentip="Publish Project Schema"
+                  supertip="Export tasks, resources, and assignments to Excel/CSV in a folder you choose."
+                  size="large"
+                  imageMso="ExportExcel"
+                  onAction="OnPublishClick" />
+
+          <button id="btnSettings"
+                  label="Settings"
+                  screentip="Publisher Settings"
+                  supertip="Change the default output folder and export options."
+                  size="normal"
+                  imageMso="ToolsOptions"
+                  onAction="OnSettingsClick" />
+
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>

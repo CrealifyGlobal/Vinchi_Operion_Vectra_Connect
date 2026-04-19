@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <!-- VSTO add-ins target full .NET Framework (not Core) -->
+    <TargetFramework>net48</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>VectraConnect</RootNamespace>
+    <AssemblyName>VectraConnect</AssemblyName>
+    <Version>1.0.0</Version>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!-- Embed ribbon XML as a resource -->
+  <ItemGroup>
+    <EmbeddedResource Include="Ribbon\PublisherRibbon.xml" />
+  </ItemGroup>
+
+  <!-- MS Project Primary Interop Assembly -->
+  <!-- Install via NuGet: Microsoft.Office.Interop.MSProject -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Office.Interop.MSProject" Version="15.0.4795.1000" />
+    <PackageReference Include="ClosedXML"                          Version="0.102.2" />
+  </ItemGroup>
+
+  <!--
+    The Microsoft.Office.Tools.MSProject and VSTO runtime references
+    come from the Visual Studio VSTO workload. Add them as references
+    when opening the solution in Visual Studio:
+
+      Microsoft.Office.Tools.MSProject
+      Microsoft.Office.Tools.Common
+      Microsoft.VisualStudio.Tools.Applications.Runtime
+  -->
+
+</Project>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Bundle.wxs — Burn bootstrapper
+  Produces: VectraConnect_Setup.exe
+  This is the single .exe your planners double-click.
+  It silently installs prerequisites (.NET 4.8, VSTO runtime) then runs the MSI wizard.
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:bal="http://schemas.microsoft.com/wix/BalExtension"
+     xmlns:netfx="http://schemas.microsoft.com/wix/NetFxExtension"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+
+  <Bundle Name="Vectra Connect"
+          Version="1.0.0.0"
+          Manufacturer="Your Organisation"
+          UpgradeCode="E9F0A1B2-C3D4-5678-9012-345678901234"
+          IconSourceFile="Assets\publisher.ico"
+          AboutUrl="https://your-org.example.com/vectra-connect">
+
+    <BootstrapperApplicationRef Id="WixStandardBootstrapperApplication.RtfLicense">
+      <bal:WixStandardBootstrapperApplication
+          LicenseFile="Assets\license.rtf"
+          LogoFile="Assets\logo.png"
+          ThemeFile="Assets\theme.xml"
+          LocalizationFile="Assets\theme.wxl"
+          SuppressOptionsUI="yes" />
+    </BootstrapperApplicationRef>
+
+    <Chain>
+
+      <!-- ── Prerequisite 1: .NET Framework 4.8 ── -->
+      <!--
+        Downloaded on-demand from Microsoft CDN if not present.
+        DetectCondition prevents re-download if already installed.
+      -->
+      <PackageGroupRef Id="NetFx48Redist" />
+
+      <!-- ── Prerequisite 2: VSTO 2010 Runtime (required for all VSTO add-ins) ── -->
+      <!--
+        vstor_redist.exe is the official Microsoft redistributable.
+        Download from: https://aka.ms/vstoruntime
+        Place vstor_redist.exe in Installer\Prerequisites\
+      -->
+      <ExePackage Id="VstoRuntime"
+                  Name="Visual Studio Tools for Office Runtime"
+                  SourceFile="Prerequisites\vstor_redist.exe"
+                  DetectCondition="VSTORUNTIME_INSTALLED"
+                  InstallCommand="/q /norestart"
+                  RepairCommand="/q /norestart /repair"
+                  UninstallCommand="/q /norestart /uninstall"
+                  Permanent="yes"
+                  Vital="yes">
+        <ExePackagePayload Name="vstor_redist.exe"
+                           SourceFile="Prerequisites\vstor_redist.exe" />
+      </ExePackage>
+
+      <!-- ── Main MSI ── -->
+      <MsiPackage Id="VectraConnectMsi"
+                  SourceFile="$(var.VectraConnectMsiPath)"
+                  DisplayInternalUI="yes"
+                  Vital="yes">
+        <!-- Pass install folder from bundle to MSI if needed -->
+        <MsiProperty Name="INSTALLFOLDER" Value="[LocalAppDataFolder]VectraConnect\" />
+      </MsiPackage>
+
+    </Chain>
+
+    <!-- Detect VSTO runtime via registry -->
+    <util:RegistrySearch Id="VstoRuntimeSearch"
+                         Variable="VSTORUNTIME_INSTALLED"
+                         Root="HKLM"
+                         Key="SOFTWARE\Microsoft\VSTO Runtime Setup\v4R"
+                         Value="Version"
+                         Result="exists" />
+
+  </Bundle>
+</Wix>
